@@ -26,6 +26,20 @@
 
 #include <stdio.h>
 #include <float.h>
+#include <pthread.h>
+
+#define GRID_SIZE 32
+#define MAXSAMPLEVALUE 100
+static int *sample_factor;
+static int enableFactorSampling = 0;
+static int init = 0;
+static int gridnumber = 0;
+static int spp = 0;
+static int row = 0;
+static int col = 0;
+static int num_horizontal_cells = 10;
+static int num_vertical_cells = 10;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct fake_randoms_t
 {
@@ -88,10 +102,67 @@ void pointsampler_splat(path_t *p, mf_t value)
   render_splat(p, value);
 }
 
+int getFactor(float i, float j) {
+  if (!enableFactorSampling) return 1;
+  int factor = 1;
+  //Calculate the factor for the Gridcell, for normalizing
+  int row = floor(i / GRID_SIZE);
+  int col = floor(j / GRID_SIZE);
+  factor = sample_factor[col * num_horizontal_cells + row];
+  return factor;
+}
+
+void setBlockSamples(int blockNumber, double value) {
+  if(value < 1) value = 1;
+  if(value > MAXSAMPLEVALUE) value = MAXSAMPLEVALUE;
+  sample_factor[blockNumber] = (int)floor(value);
+  printf("Set factor of Block %d to %d \n", blockNumber, (int)floor(value));
+}
+
+void enableFactoredSampling() { enableFactorSampling = 1;
+printf("Factor set to  1");
+}
+
 void pointsampler_mutate(path_t *curr, path_t *tent)
 {
-  path_init(tent, tent->index, tent->sensor.camid);
-  sampler_create_path(tent);
+  if (!init) {
+    init = 1;
+    sample_factor = (int*) malloc(view_width() / GRID_SIZE * view_height() / 32 * sizeof(int));
+    num_horizontal_cells = view_width() / 32;
+    num_vertical_cells = view_height() / 32;
+  }
+
+  if(!enableFactorSampling) {
+    path_init(tent, tent->index, tent->sensor.camid);
+    sampler_create_path(tent);
+  } else {
+    float i = (float)rand()/(float)(RAND_MAX);
+    i = i + row + (gridnumber % num_horizontal_cells) * GRID_SIZE;
+    float j = (float)rand()/(float)(RAND_MAX);
+    j = j + col + (gridnumber / num_horizontal_cells) * GRID_SIZE;
+    pointsampler_mutate_with_pixel(curr, tent, i, j);
+
+    pthread_mutex_lock(&mutex);
+    spp++;
+    if (spp >= sample_factor[gridnumber]) {
+      spp = 0;
+      row++;
+      if (row >= GRID_SIZE) {
+        col++;
+        row = 0;
+        if (col >= GRID_SIZE) {
+          col = 0;
+          gridnumber++;
+          //Change into first grid cell since all grid cells have been sampled
+          if (gridnumber >= num_horizontal_cells * num_vertical_cells) {
+            //write_samples_as_framebuffer();
+            gridnumber = 0;
+          }
+        }
+      }
+    }
+    pthread_mutex_unlock(&mutex);
+    }
 }
 
 void pointsampler_mutate_with_pixel(path_t *curr, path_t *tent, float i, float j)

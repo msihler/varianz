@@ -42,6 +42,10 @@ void pointsampler_splat(struct path_t *p, mf_t value);
 // rejection)
 int pointsampler_accept(struct path_t *curr, struct path_t *tent);
 
+void setBlockSamples(int blockNumber, double value);
+void enableFactoredSampling();
+int getFactor(float i, float j);
+
 // mutate path into new_path
 void pointsampler_mutate(struct path_t *curr, struct path_t *tent);
 void pointsampler_mutate_with_pixel(struct path_t *curr, struct path_t *tent, float i, float j);

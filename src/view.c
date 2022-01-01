@@ -25,6 +25,7 @@
 #include <fcntl.h>
 
 #define DBOR 1
+#define VARIANCESTARTTIME 9
 
 typedef struct view_t
 {
@@ -63,10 +64,13 @@ typedef struct view_t
   double *fb_welch_sum;         // records sum of welch samples. This is different from the frame buffer as it updates only every 3 samples per pixel
   double *fb_welch_tmp;         // records current 3 frames. Each 3 frames this is added squared to fb_welch_squared, and added to fb_welch_sum
 
+  double *sample_variance;      // records the unbiased sample variance for each pixel block
+
   view_move_t moving;
 }
 view_t;
 
+static const int welchWindowSize = 32;
 static const float view_full_frame_width = 0.35f; // [mm]
 static const float view_f_stop[] = {
   0.5, 0.7, 1.0, 1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22, 32, 45, 64, 90, 128
@@ -285,7 +289,7 @@ view_t *view_init()
     else if((strcmp(rt.argv[i], "--eye-dist") == 0) && (rt.argc > i+1)) { v->eye_dist = atof(rt.argv[++i]); v->num_cams = 2; }
     else if( strcmp(rt.argv[i], "--gpt") == 0) { v->num_fbs = v->num_cams*3; }
     else if( strcmp(rt.argv[i], "--retain-framebuffer") == 0) { fb_retain = 1; }
-    // XXX else if( strcmp(rt.argv[i], "--welch") == 0) { v->welch = 1; }
+    else if( strcmp(rt.argv[i], "--welch") == 0) { v->welch = 1; }
     else if((strcmp(rt.argv[i], "--lf-tile-size") == 0) && (rt.argc > i+1)) v->lf_tile_size = atol(rt.argv[++i]);
     else if((strcmp(rt.argv[i], "--lf-scale") == 0) && (rt.argc > i+1)) v->lf_scale = atof(rt.argv[++i]);
     else if((strcmp(rt.argv[i], "--dbor") == 0) && (rt.argc > i+1)) { v->num_dbors = atol(rt.argv[++i]); v->num_dbors = CLAMP(v->num_dbors, 0, 20); }
@@ -317,13 +321,15 @@ view_t *view_init()
   v->fb_welch_squared = 0;
   v->fb_welch_sum = 0;
   v->fb_welch_tmp = 0;
+  v->sample_variance = 0;
   if(v->welch)
   {
-    int w_wd = v->width / 32;
-    int w_ht = v->height / 32;
+    int w_wd = v->width / welchWindowSize;
+    int w_ht = v->height / welchWindowSize;
     v->fb_welch_squared = malloc(sizeof(double)*3*w_wd*w_ht);
     v->fb_welch_sum = malloc(sizeof(double)*3*w_wd*w_ht);
     v->fb_welch_tmp = malloc(sizeof(double)*3*w_wd*w_ht);
+    v->sample_variance = malloc(sizeof(double)*3*w_wd*w_ht);
   }
 
   // init frame buffers
@@ -406,6 +412,7 @@ void view_cleanup(view_t *v)
     free(v->fb_welch_squared);
     free(v->fb_welch_sum);
     free(v->fb_welch_tmp);
+    free(v->sample_variance);
   }
   free(v->fb);
   free(v->dbor);
@@ -518,15 +525,15 @@ void view_splat_col(const path_t *path, const float *col)
     }
   }
 
-#if 0
+#if 1
   // TODO: bring this feature back in alisa's version (and doubles)
   if(rt.view->welch)
   {
     // fill tmp welch buffer with sum over 32x32 pixels and 3 samples per pixel
-    const int w_wd = rt.view->width / 32;
-    const int w_ht = rt.view->height / 32;
-    const int i = path->sensor.pixel_i / 32.0f;
-    const int j = path->sensor.pixel_j / 32.0f;
+    const int w_wd = rt.view->width / welchWindowSize;
+    const int w_ht = rt.view->height / welchWindowSize;
+    const int i = path->sensor.pixel_i / (welchWindowSize+0.0f);
+    const int j = path->sensor.pixel_j / (welchWindowSize+0.0f);
     if(i >= 0 && i < w_wd && j >= 0 && j < w_ht)
     {
       double *p = rt.view->fb_welch_tmp + 3*(i+w_wd*j);
@@ -554,7 +561,7 @@ void view_write_images(const char *suffix)
     snprintf(filename, sizeof(filename), "%s%s_gcov%02d.pfm", rt.basename, suffix, fid);
     fb_export(rt.view->gcov+fid, filename, 0, 3);
   }
-#if 0
+#if 1
   if(rt.view->welch)
   {
     printf("welch square0: %f, welch sum0: %f\n",
@@ -568,7 +575,7 @@ void view_write_images(const char *suffix)
     FILE *f1 = fopen(filename, "wb");
     if(f1)
     {
-      const uint64_t w_wd = rt.view->width / 32, w_ht = rt.view->height/32;
+      const uint64_t w_wd = rt.view->width / welchWindowSize, w_ht = rt.view->height/welchWindowSize;
       for(uint64_t k = 0; k < w_wd*w_ht; k++)
       {
         double w[3] = {
@@ -591,7 +598,7 @@ void view_write_images(const char *suffix)
     FILE *f2 = fopen(filename, "wb");
     if(f2)
     {
-      const uint64_t w_wd = rt.view->width / 32, w_ht = rt.view->height/32;
+      const uint64_t w_wd = rt.view->width / welchWindowSize, w_ht = rt.view->height/welchWindowSize;
       for(uint64_t k = 0; k < w_wd*w_ht; k++)
       {
         double w[3] = {
@@ -666,8 +673,8 @@ void view_render()
     if (rt.view->overlays % 3 == 0)
     {
       // every 3 frames: accumulate welch buffers
-      const int w_wd = rt.view->width / 32;
-      const int w_ht = rt.view->height / 32;
+      const int w_wd = rt.view->width / welchWindowSize;
+      const int w_ht = rt.view->height / welchWindowSize;
       printf("clear welch tmp %f %f %f\n", rt.view->fb_welch_tmp[0], rt.view->fb_welch_squared[0], rt.view->fb_welch_sample_count);
       for (int i=0;i<w_wd*w_ht*3;i++)
       {
@@ -678,6 +685,26 @@ void view_render()
         rt.view->fb_welch_tmp[i] = 0.0;
       }
       rt.view->fb_welch_sample_count += 1.0;
+    }
+    if (rt.view->overlays == VARIANCESTARTTIME) {
+      rt.view->welch = 0;
+      //Stop welch sampling, calculate Sample Variance and adjust the amount of samples per pixelblock
+      const int w_wd = rt.view->width / welchWindowSize;
+      const int w_ht = rt.view->height / welchWindowSize;
+      for (int i=0;i<w_wd*w_ht*3;i++)
+      {
+        rt.view->sample_variance[i] = (1.0f / (welchWindowSize*welchWindowSize-1.0f)) * 
+          (rt.view->fb_welch_squared[i] - rt.view->fb_welch_sum[i] * rt.view->fb_welch_sum[i] / (welchWindowSize*welchWindowSize));
+        //printf("Variance is %f for Block %d and channel %d \n", rt.view->sample_variance[i], i / 3, i %3);
+        //printf("Squared is %f for Block %d and channel %d\n", rt.view->fb_welch_squared[i], i / 3, i % 3);
+        //printf("Sum is %f for Block %d and channel %d\n", rt.view->fb_welch_sum[i], i / 3, i % 3);
+      }
+      for (int i=0;i<w_wd*w_ht;i++) {
+        double blockAverage = (rt.view->sample_variance[3*i] + rt.view->sample_variance[3*i+1] + rt.view->sample_variance[3*i+2]) / 3.0f;
+        setBlockSamples(i, sqrt(blockAverage));
+      }
+      printf("enableFactoredSampling called");
+      enableFactoredSampling();
     }
   }
 
