@@ -23,13 +23,14 @@
 #include "points.h"
 #include "threads.h"
 #include "ext/halton/halton.h"
+#include "framebuffer.h"
 
 #include <stdio.h>
 #include <float.h>
 #include <pthread.h>
 
 #define GRID_SIZE 32
-#define MAXSAMPLEVALUE 100
+#define MAXSAMPLEVALUE 50
 static int *sample_factor;
 static int enableFactorSampling = 0;
 static int init = 0;
@@ -119,8 +120,37 @@ void setBlockSamples(int blockNumber, double value) {
   printf("Set factor of Block %d to %d \n", blockNumber, (int)floor(value));
 }
 
-void enableFactoredSampling() { enableFactorSampling = 1;
-printf("Factor set to  1");
+void enableFactoredSampling() { 
+  enableFactorSampling = 1;
+  write_samples_as_framebuffer();
+}
+
+void write_samples_as_framebuffer() {
+  framebuffer_t *fb = malloc(sizeof(framebuffer_t));
+  framebuffer_header_t *fb_header = malloc(sizeof(framebuffer_header_t));
+
+  fb_header->channels = 3;
+  fb_header->gain = 1;
+  fb_header->height = num_vertical_cells;
+  fb_header->width = num_horizontal_cells;
+
+  fb->header = fb_header;
+  fb->retain = 0;
+
+  float* buffer = (float *) malloc(3 * num_horizontal_cells*num_vertical_cells * sizeof(float));
+  for (int i = 0; i < num_horizontal_cells * num_vertical_cells; i++) {
+    buffer[3*i] = (sample_factor[i] + 0.0f) / MAXSAMPLEVALUE;
+    buffer[3*i+1] = (sample_factor[i] + 0.0f) / MAXSAMPLEVALUE;
+    buffer[3*i+2] = (sample_factor[i] + 0.0f) / MAXSAMPLEVALUE;
+
+  }
+  fb->fb = buffer;
+
+  char* name = "SampleDistribution.pfm";
+  fb_export(fb, name, 0, 0);
+  free(fb);
+  free(fb_header);
+  free(buffer);
 }
 
 void pointsampler_mutate(path_t *curr, path_t *tent)

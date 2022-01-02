@@ -45,6 +45,7 @@ int pointsampler_accept(struct path_t *curr, struct path_t *tent);
 void setBlockSamples(int blockNumber, double value);
 void enableFactoredSampling();
 int getFactor(float i, float j);
+void write_samples_as_framebuffer();
 
 // mutate path into new_path
 void pointsampler_mutate(struct path_t *curr, struct path_t *tent);
