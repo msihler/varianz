@@ -25,6 +25,7 @@
 #include <fcntl.h>
 
 #define DBOR 1
+//Number of frames after which adaptive pixel sampling starts and welch sampling ends
 #define VARIANCESTARTTIME 9
 
 typedef struct view_t
@@ -686,6 +687,7 @@ void view_render()
       }
       rt.view->fb_welch_sample_count += 1.0;
     }
+    //stop welch sampling and start factored sampling
     if (rt.view->overlays == VARIANCESTARTTIME) {
       rt.view->welch = 0;
       //Stop welch sampling, calculate Sample Variance and adjust the amount of samples per pixelblock
@@ -695,15 +697,11 @@ void view_render()
       {
         rt.view->sample_variance[i] = (1.0f / (welchWindowSize*welchWindowSize-1.0f)) * 
           (rt.view->fb_welch_squared[i] - rt.view->fb_welch_sum[i] * rt.view->fb_welch_sum[i] / (welchWindowSize*welchWindowSize));
-        //printf("Variance is %f for Block %d and channel %d \n", rt.view->sample_variance[i], i / 3, i %3);
-        //printf("Squared is %f for Block %d and channel %d\n", rt.view->fb_welch_squared[i], i / 3, i % 3);
-        //printf("Sum is %f for Block %d and channel %d\n", rt.view->fb_welch_sum[i], i / 3, i % 3);
       }
       for (int i=0;i<w_wd*w_ht;i++) {
         double blockAverage = (rt.view->sample_variance[3*i] + rt.view->sample_variance[3*i+1] + rt.view->sample_variance[3*i+2]) / 3.0f;
         setBlockSamples(i, sqrt(blockAverage));
       }
-      printf("enableFactoredSampling called");
       enableFactoredSampling();
     }
   }

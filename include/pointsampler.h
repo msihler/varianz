@@ -42,9 +42,13 @@ void pointsampler_splat(struct path_t *p, mf_t value);
 // rejection)
 int pointsampler_accept(struct path_t *curr, struct path_t *tent);
 
+//Set the factor for the spp for the designated pixelblock
 void setBlockSamples(int blockNumber, double value);
+//disable welch sampling and enable factored sampling according to the variance estimation
 void enableFactoredSampling();
+//Return the factor of the pixel block of the given pixels (gets called in blackmanharris.h)
 int getFactor(float i, float j);
+//The given samples are returned as a .pfm file
 void write_samples_as_framebuffer();
 
 // mutate path into new_path

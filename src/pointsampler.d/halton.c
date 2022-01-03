@@ -29,8 +29,11 @@
 #include <float.h>
 #include <pthread.h>
 
+//The size of each grid cell for rendering once welch sampling is disabled
 #define GRID_SIZE 32
+//Maximum amount of samples per pixel
 #define MAXSAMPLEVALUE 50
+//Samples per Pixel per Pixel Block are saved here
 static int *sample_factor;
 static int enableFactorSampling = 0;
 static int init = 0;
@@ -38,6 +41,7 @@ static int gridnumber = 0;
 static int spp = 0;
 static int row = 0;
 static int col = 0;
+//10 is a placeholder, value is set in pointsampler_mutate
 static int num_horizontal_cells = 10;
 static int num_vertical_cells = 10;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -104,6 +108,7 @@ void pointsampler_splat(path_t *p, mf_t value)
 }
 
 int getFactor(float i, float j) {
+  //If called while welch sampling is still enabled
   if (!enableFactorSampling) return 1;
   int factor = 1;
   //Calculate the factor for the Gridcell, for normalizing
@@ -114,10 +119,11 @@ int getFactor(float i, float j) {
 }
 
 void setBlockSamples(int blockNumber, double value) {
+  //clamp to 1 or the max value
   if(value < 1) value = 1;
   if(value > MAXSAMPLEVALUE) value = MAXSAMPLEVALUE;
   sample_factor[blockNumber] = (int)floor(value);
-  printf("Set factor of Block %d to %d \n", blockNumber, (int)floor(value));
+  //printf("Set factor of Block %d to %d \n", blockNumber, (int)floor(value));
 }
 
 void enableFactoredSampling() { 
@@ -137,6 +143,7 @@ void write_samples_as_framebuffer() {
   fb->header = fb_header;
   fb->retain = 0;
 
+  //divide by the highest possible value so the resulting values are between 0 and 1
   float* buffer = (float *) malloc(3 * num_horizontal_cells*num_vertical_cells * sizeof(float));
   for (int i = 0; i < num_horizontal_cells * num_vertical_cells; i++) {
     buffer[3*i] = (sample_factor[i] + 0.0f) / MAXSAMPLEVALUE;
@@ -155,6 +162,7 @@ void write_samples_as_framebuffer() {
 
 void pointsampler_mutate(path_t *curr, path_t *tent)
 {
+  //init global variables
   if (!init) {
     init = 1;
     sample_factor = (int*) malloc(view_width() / GRID_SIZE * view_height() / 32 * sizeof(int));
@@ -163,9 +171,11 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
   }
 
   if(!enableFactorSampling) {
+    //standard procedure
     path_init(tent, tent->index, tent->sensor.camid);
     sampler_create_path(tent);
   } else {
+    //calculate random value within given pixel
     float i = (float)rand()/(float)(RAND_MAX);
     i = i + row + (gridnumber % num_horizontal_cells) * GRID_SIZE;
     float j = (float)rand()/(float)(RAND_MAX);
@@ -173,19 +183,22 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
     pointsampler_mutate_with_pixel(curr, tent, i, j);
 
     pthread_mutex_lock(&mutex);
+    //New sample within same pixel
     spp++;
+    //new Pixel (row gets incremented)
     if (spp >= sample_factor[gridnumber]) {
       spp = 0;
       row++;
+      //New Pixel (col gets incremented)
       if (row >= GRID_SIZE) {
         col++;
         row = 0;
+        //New Grid cell
         if (col >= GRID_SIZE) {
           col = 0;
           gridnumber++;
           //Change into first grid cell since all grid cells have been sampled
           if (gridnumber >= num_horizontal_cells * num_vertical_cells) {
-            //write_samples_as_framebuffer();
             gridnumber = 0;
           }
         }
