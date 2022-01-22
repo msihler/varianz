@@ -26,7 +26,8 @@
 
 #define DBOR 1
 //Number of frames after which adaptive pixel sampling starts and welch sampling ends
-#define VARIANCESTARTTIME 9
+#define VARIANCESTARTTIME 6
+static int varianceStarted = 0;
 
 typedef struct view_t
 {
@@ -71,7 +72,7 @@ typedef struct view_t
 }
 view_t;
 
-static const int welchWindowSize = 32;
+static const int welchWindowSize = 1;
 static const float view_full_frame_width = 0.35f; // [mm]
 static const float view_f_stop[] = {
   0.5, 0.7, 1.0, 1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22, 32, 45, 64, 90, 128
@@ -104,6 +105,10 @@ uint64_t view_width()
 uint64_t view_height()
 {
   return rt.view->height;
+}
+
+void increase_overlays() {
+  rt.view->overlays+= rt.batch_frames;
 }
 
 uint64_t view_overlays()
@@ -653,7 +658,9 @@ void view_render()
   pointsampler_finalize(rt.pointsampler);
 
   // update progression count in frame buffer files:
-  rt.view->overlays += rt.batch_frames;
+  //if (rt.view->overlays < VARIANCESTARTTIME && !varianceStarted) {
+    rt.view->overlays += rt.batch_frames;
+  //}
   for(int c=0;c<rt.view->num_fbs;c++)
   {
     const int cid = c / (rt.view->num_fbs/rt.view->num_cams);
@@ -688,8 +695,9 @@ void view_render()
       rt.view->fb_welch_sample_count += 1.0;
     }
     //stop welch sampling and start factored sampling
-    if (rt.view->overlays == VARIANCESTARTTIME) {
-      rt.view->welch = 0;
+    if (rt.view->overlays == VARIANCESTARTTIME && !varianceStarted) {
+      varianceStarted = 1;
+   //   rt.view->welch = 0;
       //Stop welch sampling, calculate Sample Variance and adjust the amount of samples per pixelblock
       const int w_wd = rt.view->width / welchWindowSize;
       const int w_ht = rt.view->height / welchWindowSize;
@@ -702,6 +710,7 @@ void view_render()
         double blockAverage = (rt.view->sample_variance[3*i] + rt.view->sample_variance[3*i+1] + rt.view->sample_variance[3*i+2]) / 3.0f;
         setBlockSamples(i, sqrt(blockAverage));
       }
+      //view_clear();
       enableFactoredSampling();
     }
   }

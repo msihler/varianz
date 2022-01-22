@@ -91,6 +91,7 @@ float view_sample_time(const struct path_t *p, const float rand);
 // pdf to have sampled time given the shutter of the camera used on this path
 float view_pdf_time(const struct path_t *p, const float time);
 
+void increase_overlays();
 
 
 // wrap camera interface functions:

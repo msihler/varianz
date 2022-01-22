@@ -29,10 +29,12 @@
 #include <float.h>
 #include <pthread.h>
 
+//Number of color channels, standard value is 3
+#define NUMCHANNELS 3
 //The size of each grid cell for rendering once welch sampling is disabled
-#define GRID_SIZE 32
+#define GRID_SIZE 1
 //Maximum amount of samples per pixel
-#define MAXSAMPLEVALUE 50
+#define MAXSAMPLEVALUE 40
 //Samples per Pixel per Pixel Block are saved here
 static int *sample_factor;
 static int enableFactorSampling = 0;
@@ -119,11 +121,16 @@ int getFactor(float i, float j) {
 }
 
 void setBlockSamples(int blockNumber, double value) {
+  int blockValue = (int)floor(value);
   //clamp to 1 or the max value
-  if(value < 1) value = 1;
-  if(value > MAXSAMPLEVALUE) value = MAXSAMPLEVALUE;
-  sample_factor[blockNumber] = (int)floor(value);
-  //printf("Set factor of Block %d to %d \n", blockNumber, (int)floor(value));
+  if(blockValue < 1) {
+    blockValue = 1;
+  } else if(blockValue > MAXSAMPLEVALUE) {
+    blockValue = MAXSAMPLEVALUE;
+  } else {
+    sample_factor[blockNumber] = blockValue;
+  }
+  //printf("Set factor of Block %d to %d \n", blockNumber, blockValue);
 }
 
 void enableFactoredSampling() { 
@@ -165,9 +172,12 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
   //init global variables
   if (!init) {
     init = 1;
-    sample_factor = (int*) malloc(view_width() / GRID_SIZE * view_height() / 32 * sizeof(int));
-    num_horizontal_cells = view_width() / 32;
-    num_vertical_cells = view_height() / 32;
+    sample_factor = (int*) malloc(view_width() / GRID_SIZE * view_height() / GRID_SIZE * sizeof(int));
+    num_horizontal_cells = view_width() / GRID_SIZE;
+    num_vertical_cells = view_height() / GRID_SIZE;
+    for (int i = 0; i < num_horizontal_cells*num_vertical_cells; i++) {
+      sample_factor[i] = 1;
+    }
   }
 
   if(!enableFactorSampling) {
@@ -186,7 +196,7 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
     //New sample within same pixel
     spp++;
     //new Pixel (row gets incremented)
-    if (spp >= sample_factor[gridnumber]) {
+    if (spp >= sample_factor[gridnumber] * NUMCHANNELS) {
       spp = 0;
       row++;
       //New Pixel (col gets incremented)
@@ -200,6 +210,7 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
           //Change into first grid cell since all grid cells have been sampled
           if (gridnumber >= num_horizontal_cells * num_vertical_cells) {
             gridnumber = 0;
+         ///   increase_overlays();
           }
         }
       }

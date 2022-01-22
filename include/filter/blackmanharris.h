@@ -63,7 +63,6 @@ static inline void filter_blackmanharris_splat(
     weight += f;
   }
   if(weight <= 0) return;
-  //Factor gets multiplied by the factor of each pixelblock to equal out the normalization
   int factor = getFactor(i, j);
   weight = weight * factor;
   weight = 1.0f/weight;

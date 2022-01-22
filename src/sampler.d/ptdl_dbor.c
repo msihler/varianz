@@ -167,9 +167,9 @@ void sampler_create_path(path_t *path)
         else
         {
           splat_fb(rt.sampler->fb_result, path, contrib);
-          pointsampler_splat(path, contrib);
         }
         splat_fb(rt.sampler->fb_all, path, contrib);
+        pointsampler_splat(path, contrib);
       }
     }
     if(path->length >= rt.sampler->max_path_len) return;
@@ -204,9 +204,9 @@ void sampler_create_path(path_t *path)
         else
         {
           splat_fb(rt.sampler->fb_result, path, contrib);
-          pointsampler_splat(path, contrib);
         }
         splat_fb(rt.sampler->fb_all, path, contrib);
+        pointsampler_splat(path, contrib);
       }
     }
     path_pop(path);
