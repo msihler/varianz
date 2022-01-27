@@ -32,7 +32,7 @@
 //Number of color channels, standard value is 3
 #define NUMCHANNELS 3
 //The size of each grid cell for rendering once welch sampling is disabled
-#define GRID_SIZE 1
+#define GRID_SIZE 16
 //Maximum amount of samples per pixel
 #define MAXSAMPLEVALUE 40
 //Samples per Pixel per Pixel Block are saved here
@@ -186,9 +186,11 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
     sampler_create_path(tent);
   } else {
     //calculate random value within given pixel
-    float i = (float)rand()/(float)(RAND_MAX);
+    float i = points_rand(rt.points, common_get_threadid());
     i = i + row + (gridnumber % num_horizontal_cells) * GRID_SIZE;
-    float j = (float)rand()/(float)(RAND_MAX);
+    //float j = pointsampler(curr, s_dim_image_y);
+    //printf("%f is j \n", j);
+    float j = points_rand(rt.points, common_get_threadid());
     j = j + col + (gridnumber / num_horizontal_cells) * GRID_SIZE;
     pointsampler_mutate_with_pixel(curr, tent, i, j);
 
@@ -210,7 +212,7 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
           //Change into first grid cell since all grid cells have been sampled
           if (gridnumber >= num_horizontal_cells * num_vertical_cells) {
             gridnumber = 0;
-         ///   increase_overlays();
+            //increase_overlays();
           }
         }
       }

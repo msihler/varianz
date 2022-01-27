@@ -697,7 +697,9 @@ void view_render()
     //stop welch sampling and start factored sampling
     if (rt.view->overlays == VARIANCESTARTTIME && !varianceStarted) {
       varianceStarted = 1;
-   //   rt.view->welch = 0;
+      rt.view->overlays = 0;
+      rt.view->welch = 0;
+      view_clear();
       //Stop welch sampling, calculate Sample Variance and adjust the amount of samples per pixelblock
       const int w_wd = rt.view->width / welchWindowSize;
       const int w_ht = rt.view->height / welchWindowSize;
