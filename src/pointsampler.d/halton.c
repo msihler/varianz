@@ -196,19 +196,19 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
 
     pthread_mutex_lock(&mutex);
     //New sample within same pixel
-    spp++;
+    ++spp;
     //new Pixel (row gets incremented)
     if (spp >= sample_factor[gridnumber] * NUMCHANNELS) {
       spp = 0;
-      row++;
+      ++row;
       //New Pixel (col gets incremented)
       if (row >= GRID_SIZE) {
-        col++;
+        ++col;
         row = 0;
         //New Grid cell
         if (col >= GRID_SIZE) {
           col = 0;
-          gridnumber++;
+          ++gridnumber;
           //Change into first grid cell since all grid cells have been sampled
           if (gridnumber >= num_horizontal_cells * num_vertical_cells) {
             gridnumber = 0;

@@ -26,7 +26,7 @@
 
 #define DBOR 1
 //Number of frames after which adaptive pixel sampling starts and welch sampling ends
-#define VARIANCESTARTTIME 6
+#define VARIANCESTARTTIME 9
 static int varianceStarted = 0;
 
 typedef struct view_t
@@ -72,7 +72,7 @@ typedef struct view_t
 }
 view_t;
 
-static const int welchWindowSize = 1;
+static const int welchWindowSize = 16;
 static const float view_full_frame_width = 0.35f; // [mm]
 static const float view_f_stop[] = {
   0.5, 0.7, 1.0, 1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22, 32, 45, 64, 90, 128
@@ -709,8 +709,10 @@ void view_render()
           (rt.view->fb_welch_squared[i] - rt.view->fb_welch_sum[i] * rt.view->fb_welch_sum[i] / (welchWindowSize*welchWindowSize));
       }
       for (int i=0;i<w_wd*w_ht;i++) {
+        double sumAverage = rt.view->fb_welch_sum[i] / welchWindowSize / welchWindowSize;
+        if (sumAverage < 1) {sumAverage = 1;}
         double blockAverage = (rt.view->sample_variance[3*i] + rt.view->sample_variance[3*i+1] + rt.view->sample_variance[3*i+2]) / 3.0f;
-        setBlockSamples(i, sqrt(blockAverage));
+        setBlockSamples(i, sqrt(blockAverage) / sumAverage);
       }
       //view_clear();
       enableFactoredSampling();
