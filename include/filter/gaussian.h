@@ -24,6 +24,22 @@
 #include "fakegaussian.h"
 #include "svd2.h"
 
+/**static float* gaussMatrix = {1/273, 4/273, 7/273, 4/273, 1/273, 
+                            4/273, 16/273, 26/273, 16/273, 4/273, 
+                            7/273, 26/273, 41/273, 26/273, 7/273, 
+                            4/273, 16/273, 26/273, 16/273, 4/273, 
+                            1/273, 4/273, 7/273, 4/273, 1/273};
+
+static float* convolveMatrixWithGaussian(float* givenMatrix, int width, int height) {
+  float* resultMatrix = malloc(sizeof(givenMatrix));
+  for (int row = 0; row < height; row++) {
+    for (int col = 0; col < width; col++) {
+        resultMatrix[row*width+col] = 
+    }
+  }
+}**/
+
+
 static inline void filter_gaussian_splat(
     framebuffer_t *fb,
     const float i,

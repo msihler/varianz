@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "blackmanharris.h": "c"
+        "blackmanharris.h": "c",
+        "gaussian.h": "c",
+        "fakegaussian.h": "c",
+        "framebuffer.h": "c"
     }
 }

@@ -24,11 +24,16 @@
 #include "threads.h"
 #include "ext/halton/halton.h"
 #include "framebuffer.h"
+#include "../tools/img/gaussconv"
 
 #include <stdio.h>
 #include <float.h>
 #include <pthread.h>
 
+//Define whether the resulting variance map should be convoluted using a gaussian filter
+#define USEGAUSSIAN 1
+//The Sigma Parameter for the gaussian filter
+#define GAUSSIANSIGMA 1
 //Number of color channels, standard value is 3
 #define NUMCHANNELS 3
 //The size of each grid cell for rendering once welch sampling is disabled
@@ -149,6 +154,20 @@ void write_samples_as_framebuffer() {
 
   fb->header = fb_header;
   fb->retain = 0;
+  if (USEGAUSSIAN == 1) {
+    float* sampleFactorFloat = malloc(sizeof(float)*num_horizontal_cells*num_vertical_cells);
+    for(int i = 0; i < num_vertical_cells*num_horizontal_cells; i++) {
+      sampleFactorFloat[i] = sample_factor[i] + 0.0f;
+    }
+    iir_gauss_blur(num_horizontal_cells, num_vertical_cells, 1, sampleFactorFloat, GAUSSIANSIGMA);
+    for(int i = 0; i < num_vertical_cells*num_horizontal_cells; i++) {
+      if ((sampleFactorFloat[i] - floor(sampleFactorFloat[i])) < 0.5) {
+        sample_factor[i] = floor(sampleFactorFloat[i]);
+      } else {
+        sample_factor[i] = ceil(sampleFactorFloat[i]);
+      }
+    }
+  }
 
   //divide by the highest possible value so the resulting values are between 0 and 1
   float* buffer = (float *) malloc(3 * num_horizontal_cells*num_vertical_cells * sizeof(float));
