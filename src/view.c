@@ -28,6 +28,7 @@
 //Number of frames after which adaptive pixel sampling starts and welch sampling ends
 #define VARIANCESTARTTIME 9
 static int varianceStarted = 0;
+static const int welchWindowSize = 16;
 
 typedef struct view_t
 {
@@ -72,7 +73,7 @@ typedef struct view_t
 }
 view_t;
 
-static const int welchWindowSize = 16;
+
 static const float view_full_frame_width = 0.35f; // [mm]
 static const float view_f_stop[] = {
   0.5, 0.7, 1.0, 1.4, 2, 2.8, 4, 5.6, 8, 11, 16, 22, 32, 45, 64, 90, 128
@@ -642,8 +643,10 @@ void view_render()
   threads_t *t = rt.threads;
 
   const double time_begin = common_time_wallclock();
+  uint64_t sampleCount = getSampleCount(rt.view->width, rt.view->height);
   // step sample counter globally in 1spp intervals:
-  const uint64_t end = t->counter + (uint64_t)rt.batch_frames * (uint64_t)(rt.view->width * rt.view->height);
+  //const uint64_t end = t->counter + (uint64_t)rt.batch_frames * (uint64_t)(rt.view->width * rt.view->height);
+  const uint64_t end = t->counter + sampleCount * rt.batch_frames;
   t->counter = t->end;
   t->end = end;
   // do this only now so they know how many samples the threads use
@@ -658,9 +661,7 @@ void view_render()
   pointsampler_finalize(rt.pointsampler);
 
   // update progression count in frame buffer files:
-  //if (rt.view->overlays < VARIANCESTARTTIME && !varianceStarted) {
-    rt.view->overlays += rt.batch_frames;
-  //}
+  rt.view->overlays += 1;
   for(int c=0;c<rt.view->num_fbs;c++)
   {
     const int cid = c / (rt.view->num_fbs/rt.view->num_cams);

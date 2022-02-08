@@ -12,6 +12,6 @@
 #define colour_output_to_xyz colour_adobergb_to_xyz
 #define colour_xyz_to_output colour_xyz_to_adobergb
 #define colour_output_print_info colour_adobergb_print_info
-#define colour_camera_to_xyz colour_xyz_to_xyz
-#define colour_xyz_to_camera colour_xyz_to_xyz
-#define colour_camera_print_info colour_xyz_print_info
+#define colour_camera_to_xyz colour_rec709_to_xyz
+#define colour_xyz_to_camera colour_xyz_to_rec709
+#define colour_camera_print_info colour_rec709_print_info

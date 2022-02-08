@@ -50,6 +50,8 @@ void enableFactoredSampling();
 int getFactor(float i, float j);
 //The given samples are returned as a .pfm file
 void write_samples_as_framebuffer();
+//Return the sum of all samples that are distributed during the next iteration
+uint64_t getSampleCount(int width, int height);
 
 // mutate path into new_path
 void pointsampler_mutate(struct path_t *curr, struct path_t *tent);

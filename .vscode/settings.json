@@ -3,6 +3,9 @@
         "blackmanharris.h": "c",
         "gaussian.h": "c",
         "fakegaussian.h": "c",
-        "framebuffer.h": "c"
+        "framebuffer.h": "c",
+        "points.h": "c",
+        "sampler.h": "c",
+        "threads.h": "c"
     }
 }

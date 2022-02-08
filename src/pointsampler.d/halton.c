@@ -35,7 +35,7 @@
 //The Sigma Parameter for the gaussian filter
 #define GAUSSIANSIGMA 1
 //Number of color channels, standard value is 3
-#define NUMCHANNELS 3
+#define NUMCHANNELS 1
 //The size of each grid cell for rendering once welch sampling is disabled
 #define GRID_SIZE 16
 //Maximum amount of samples per pixel
@@ -112,6 +112,21 @@ float pointsampler(path_t *p, int i)
 void pointsampler_splat(path_t *p, mf_t value)
 {
   render_splat(p, value);
+}
+
+uint64_t getSampleCount(int width, int height) {
+  if (init == 0 || !enableFactorSampling) {
+    return width * height;
+  }
+  uint64_t sampleSum = 0;
+  for (int i = 0; i < width / GRID_SIZE * height / GRID_SIZE; i++) {
+    if (!sample_factor[i]) sampleSum += 1; else {
+      sampleSum += sample_factor[i];
+    }
+  }
+  sampleSum = sampleSum * NUMCHANNELS;
+  sampleSum = sampleSum * GRID_SIZE * GRID_SIZE;
+  return sampleSum;
 }
 
 int getFactor(float i, float j) {
@@ -207,8 +222,6 @@ void pointsampler_mutate(path_t *curr, path_t *tent)
     //calculate random value within given pixel
     float i = points_rand(rt.points, common_get_threadid());
     i = i + row + (gridnumber % num_horizontal_cells) * GRID_SIZE;
-    //float j = pointsampler(curr, s_dim_image_y);
-    //printf("%f is j \n", j);
     float j = points_rand(rt.points, common_get_threadid());
     j = j + col + (gridnumber / num_horizontal_cells) * GRID_SIZE;
     pointsampler_mutate_with_pixel(curr, tent, i, j);
