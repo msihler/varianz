@@ -31,13 +31,13 @@
 #include <pthread.h>
 
 //Define whether the resulting variance map should be convoluted using a gaussian filter
-#define USEGAUSSIAN 1
+#define USEGAUSSIAN 0
 //The Sigma Parameter for the gaussian filter
 #define GAUSSIANSIGMA 1
 //Number of color channels, standard value is 3
 #define NUMCHANNELS 1
 //The size of each grid cell for rendering once welch sampling is disabled
-#define GRID_SIZE 8
+#define GRID_SIZE 16
 //Maximum amount of samples per pixel
 #define MAXSAMPLEVALUE 40
 //Samples per Pixel per Pixel Block are saved here
