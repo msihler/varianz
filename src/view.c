@@ -71,7 +71,7 @@ typedef struct view_t
 
   view_move_t moving;
 
-    int screenshot_spp;           // spp at which to write out screenshot and welch and everything
+  int screenshot_spp;           // spp at which to write out screenshot and welch and everything
   int screenshot_exp;		        // if this is 1, write out screenshot and welch and everything at 1, 2, 4, 8, ...
 }
 view_t;
@@ -296,7 +296,7 @@ view_t *view_init()
   int fb_retain = 0;
   v->lf_tile_size = 0;           // light field stuff: pixel tile size
   v->lf_scale = 0.1f;            // scale converting directions to relative position in tile
-    v->screenshot_spp = -1;
+  v->screenshot_spp = -1;
   v->screenshot_exp = 0;
   
   for(int i=0;i<rt.argc;i++)
@@ -316,6 +316,8 @@ view_t *view_init()
     else if((strcmp(rt.argv[i], "--lf-tile-size") == 0) && (rt.argc > i+1)) v->lf_tile_size = atol(rt.argv[++i]);
     else if((strcmp(rt.argv[i], "--lf-scale") == 0) && (rt.argc > i+1)) v->lf_scale = atof(rt.argv[++i]);
     else if((strcmp(rt.argv[i], "--dbor") == 0) && (rt.argc > i+1)) { v->num_dbors = atol(rt.argv[++i]); v->num_dbors = CLAMP(v->num_dbors, 0, 20); }
+    else if((strcmp(rt.argv[i], "--spp") == 0) && (rt.argc > i+1)) v->screenshot_spp = atol(rt.argv[++i]);
+    else if( strcmp(rt.argv[i], "--scr-exp") == 0) v->screenshot_exp = 1;
   }
 
   printf("screenshot spp: %d, scr-exp: %d\n", v->screenshot_spp, v->screenshot_exp);
@@ -740,7 +742,7 @@ void view_render()
       enableFactoredSampling();
     }
   }
-  if (screenshot_condition(rt.view->overlays))
+  if (screenshot_condition(rt.view->overlays) && varianceStarted)
     view_write_images(rt.output_filename);
 
   const double time_end = common_time_wallclock();
