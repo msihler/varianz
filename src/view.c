@@ -70,9 +70,23 @@ typedef struct view_t
   double *sample_variance;      // records the unbiased sample variance for each pixel block
 
   view_move_t moving;
+
+    int screenshot_spp;           // spp at which to write out screenshot and welch and everything
+  int screenshot_exp;		        // if this is 1, write out screenshot and welch and everything at 1, 2, 4, 8, ...
 }
 view_t;
 
+static inline int screenshot_condition(int curr_samples)
+{
+	if (rt.view->screenshot_exp)
+	{
+		if ((curr_samples & ~(curr_samples-1)) == curr_samples) // checks power of 2
+		{
+			return 1;
+		}
+	}
+	return curr_samples == rt.view->screenshot_spp && rt.view->screenshot_spp > 0;
+}
 
 static const float view_full_frame_width = 0.35f; // [mm]
 static const float view_f_stop[] = {
@@ -282,6 +296,8 @@ view_t *view_init()
   int fb_retain = 0;
   v->lf_tile_size = 0;           // light field stuff: pixel tile size
   v->lf_scale = 0.1f;            // scale converting directions to relative position in tile
+    v->screenshot_spp = -1;
+  v->screenshot_exp = 0;
   
   for(int i=0;i<rt.argc;i++)
   {
@@ -302,6 +318,7 @@ view_t *view_init()
     else if((strcmp(rt.argv[i], "--dbor") == 0) && (rt.argc > i+1)) { v->num_dbors = atol(rt.argv[++i]); v->num_dbors = CLAMP(v->num_dbors, 0, 20); }
   }
 
+  printf("screenshot spp: %d, scr-exp: %d\n", v->screenshot_spp, v->screenshot_exp);
   // fullfill 32-alignment for tiles.
   while(v->width  & 0x1f) v->width++;
   while(v->height & 0x1f) v->height++;
@@ -558,6 +575,11 @@ void view_write_images(const char *suffix)
   for(int fid=0;fid<rt.view->num_fbs;fid++)
   {
     snprintf(filename, sizeof(filename), "%s%s_fb%02d.pfm", rt.basename, suffix, fid);
+    if (screenshot_condition(rt.view->overlays))
+    {
+      snprintf(filename, sizeof(filename), "%s%s_%"PRIu64"spp_fb%02d.pfm", rt.basename, suffix, rt.view->overlays, fid);
+      printf("Write screenshot: %s\n", filename);
+    }
     fb_export(rt.view->fb+fid, filename, 0, 3);
     common_write_sidecar(filename);
   }
@@ -718,6 +740,8 @@ void view_render()
       enableFactoredSampling();
     }
   }
+  if (screenshot_condition(rt.view->overlays))
+    view_write_images(rt.output_filename);
 
   const double time_end = common_time_wallclock();
   rt.view->time_overlays += time_end - time_begin;
