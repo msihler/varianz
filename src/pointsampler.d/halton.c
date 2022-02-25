@@ -37,7 +37,7 @@
 //Number of color channels, standard value is 3
 #define NUMCHANNELS 1
 //The size of each grid cell for rendering once welch sampling is disabled
-#define GRID_SIZE 16
+#define GRID_SIZE 8
 //Maximum amount of samples per pixel
 #define MAXSAMPLEVALUE 40
 //Samples per Pixel per Pixel Block are saved here

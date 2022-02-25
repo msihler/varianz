@@ -28,7 +28,7 @@
 //Number of frames after which adaptive pixel sampling starts and welch sampling ends
 #define VARIANCESTARTTIME 9
 static int varianceStarted = 0;
-static const int welchWindowSize = 16;
+static const int welchWindowSize = 8;
 
 typedef struct view_t
 {
@@ -700,7 +700,6 @@ void view_render()
       varianceStarted = 1;
       rt.view->overlays = 0;
       rt.view->welch = 0;
-      view_clear();
       //Stop welch sampling, calculate Sample Variance and adjust the amount of samples per pixelblock
       const int w_wd = rt.view->width / welchWindowSize;
       const int w_ht = rt.view->height / welchWindowSize;
@@ -715,7 +714,7 @@ void view_render()
         double blockAverage = (rt.view->sample_variance[3*i] + rt.view->sample_variance[3*i+1] + rt.view->sample_variance[3*i+2]) / 3.0f;
         setBlockSamples(i, sqrt(blockAverage) / sumAverage);
       }
-      //view_clear();
+      view_clear();
       enableFactoredSampling();
     }
   }
