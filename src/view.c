@@ -735,7 +735,7 @@ void view_render()
       for (int i=0;i<w_wd*w_ht;i++) {
         double sumAverage = rt.view->fb_welch_sum[i] / welchWindowSize / welchWindowSize;
         if (sumAverage < 1) {sumAverage = 1;}
-        double blockAverage = (rt.view->sample_variance[3*i]);// + rt.view->sample_variance[3*i+1] + rt.view->sample_variance[3*i+2]) / 3.0f;
+        double blockAverage = (rt.view->sample_variance[3*i] + rt.view->sample_variance[3*i+1] + rt.view->sample_variance[3*i+2]) / 3.0f;
         setBlockSamples(i, sqrt(blockAverage) / sumAverage);
       }
       view_clear();
