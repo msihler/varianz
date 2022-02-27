@@ -33,7 +33,7 @@
 //Define whether the resulting variance map should be convoluted using a gaussian filter
 #define USEGAUSSIAN 1
 //The Sigma Parameter for the gaussian filter
-#define GAUSSIANSIGMA 1
+#define GAUSSIANSIGMA 0.5
 //Number of color channels, standard value is 3
 #define NUMCHANNELS 1
 //The size of each grid cell for rendering once welch sampling is disabled
