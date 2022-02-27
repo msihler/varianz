@@ -28,7 +28,7 @@
 //Number of frames after which adaptive pixel sampling starts and welch sampling ends
 #define VARIANCESTARTTIME 9
 static int varianceStarted = 0;
-static const int welchWindowSize = 4;
+static const int welchWindowSize = 64;
 
 typedef struct view_t
 {
