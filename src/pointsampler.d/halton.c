@@ -31,7 +31,7 @@
 #include <pthread.h>
 
 //Define whether the resulting variance map should be convoluted using a gaussian filter
-#define USEGAUSSIAN 0
+#define USEGAUSSIAN 1
 //The Sigma Parameter for the gaussian filter
 #define GAUSSIANSIGMA 1
 //Number of color channels, standard value is 3
